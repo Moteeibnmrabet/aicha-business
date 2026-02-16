@@ -1,15 +1,43 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { getProductById } from '../data/mockData';
+import { api } from '../services/api';
 import useScrollAnimation from '../hooks/useScrollAnimation';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ProductDetail = () => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const product = getProductById(id);
-  const [selectedMaterial, setSelectedMaterial] = useState(product?.materials[0] || 'Lin');
+  const [product, setProduct] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedMaterial, setSelectedMaterial] = useState('Lin');
   const [imageRef, imageVisible] = useScrollAnimation({ once: true });
   const [contentRef, contentVisible] = useScrollAnimation({ once: true });
+
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        const data = await api.getProduct(id);
+        setProduct(data);
+        setSelectedMaterial(data.materials?.[0] || 'Lin');
+      } catch (error) {
+        console.error('Error fetching product:', error);
+        setProduct(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProduct();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center mt-16">
+        <div className="text-center">
+          <p className="font-sans font-light text-deep-black/70">Chargement...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!product) {
     return (
@@ -51,7 +79,7 @@ const ProductDetail = () => {
           >
             <div className="relative aspect-square bg-white overflow-hidden">
               <img
-                src={product.image}
+                src={getImageUrl(product.image)}
                 alt={product.name}
                 className="w-full h-full object-cover"
               />

@@ -1,6 +1,7 @@
 import React from 'react';
 import useScrollAnimation from '../hooks/useScrollAnimation';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ProductCard = ({ product, index, onProductClick }) => {
   const [productRef, productVisible] = useScrollAnimation({ 
@@ -32,7 +33,7 @@ const ProductCard = ({ product, index, onProductClick }) => {
       {/* Image produit */}
       <div className="relative overflow-hidden mb-4 bg-white aspect-square">
         <img
-          src={product.image}
+          src={getImageUrl(product.image)}
           alt={product.name}
           className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
         />

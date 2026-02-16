@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useCart } from '../context/CartContext';
+import { getImageUrl } from '../utils/imageUtils';
 
 const ProductModal = ({ product, isOpen, onClose }) => {
   const [selectedMaterial, setSelectedMaterial] = useState(product?.materials[0] || 'Lin');
@@ -41,7 +42,7 @@ const ProductModal = ({ product, isOpen, onClose }) => {
           {/* Image produit */}
           <div className="relative aspect-square bg-white overflow-hidden">
             <img
-              src={product.image}
+              src={getImageUrl(product.image)}
               alt={product.name}
               className="w-full h-full object-cover"
             />

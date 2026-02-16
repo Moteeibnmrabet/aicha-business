@@ -1,10 +1,30 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import useScrollAnimation from '../hooks/useScrollAnimation';
 import { scrollToSection } from '../utils/smoothScroll';
+import { api } from '../services/api';
+
+const defaultContent = {
+  footerTitle: 'Restez informé',
+  footerSubtitle: 'Recevez nos dernières collections et actualités',
+  copyrightText: '© 2024 Aicha Business. Tous droits réservés.'
+};
 
 const Footer = ({ onShowToast }) => {
   const [email, setEmail] = useState('');
   const [footerRef, isVisible] = useScrollAnimation({ once: true });
+  const [content, setContent] = useState(defaultContent);
+
+  useEffect(() => {
+    api.getSettings()
+      .then((data) => {
+        setContent({
+          footerTitle: data.footerTitle || defaultContent.footerTitle,
+          footerSubtitle: data.footerSubtitle || defaultContent.footerSubtitle,
+          copyrightText: data.copyrightText || defaultContent.copyrightText
+        });
+      })
+      .catch(() => {});
+  }, []);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -20,22 +40,21 @@ const Footer = ({ onShowToast }) => {
   };
 
   return (
-    <footer 
+    <footer
       ref={footerRef}
       className={`py-24 md:py-32 px-6 border-t border-light-gray transition-all duration-1000 ${
         isVisible ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-8'
       }`}
     >
       <div className="max-w-7xl mx-auto">
-        {/* Newsletter */}
         <div className="text-center mb-12">
           <h3 className="text-2xl font-serif font-light mb-4 tracking-wide">
-            Restez informé
+            {content.footerTitle}
           </h3>
           <p className="text-sm font-sans font-light text-deep-black/70 mb-6">
-            Recevez nos dernières collections et actualités
+            {content.footerSubtitle}
           </p>
-          
+
           <form onSubmit={handleSubmit} className="max-w-md mx-auto flex gap-2">
             <input
               type="email"
@@ -53,40 +72,37 @@ const Footer = ({ onShowToast }) => {
             </button>
           </form>
         </div>
-        
-        {/* Liens et copyright */}
+
         <div className="flex flex-col md:flex-row justify-between items-center pt-8 border-t border-light-gray">
           <div className="flex gap-6 mb-4 md:mb-0">
-            <a 
-              href="#collections" 
+            <a
+              href="#collections"
               onClick={(e) => handleLinkClick(e, 'collections')}
               className="text-xs font-sans font-light text-deep-black/70 hover:text-deep-black transition-colors"
             >
               Collections
             </a>
-            <a 
-              href="#philosophy" 
+            <a
+              href="#philosophy"
               onClick={(e) => handleLinkClick(e, 'philosophy')}
               className="text-xs font-sans font-light text-deep-black/70 hover:text-deep-black transition-colors"
             >
               À propos
             </a>
-            <a 
-              href="#contact" 
+            <a
+              href="#contact"
               onClick={(e) => {
                 e.preventDefault();
-                if (onShowToast) {
-                  onShowToast('Bientôt disponible');
-                }
+                if (onShowToast) onShowToast('Bientôt disponible');
               }}
               className="text-xs font-sans font-light text-deep-black/70 hover:text-deep-black transition-colors"
             >
               Contact
             </a>
           </div>
-          
+
           <p className="text-xs font-sans font-light text-deep-black/50">
-            © 2024 Aicha Business. Tous droits réservés.
+            {content.copyrightText}
           </p>
         </div>
       </div>
