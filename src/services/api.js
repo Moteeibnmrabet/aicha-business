@@ -4,6 +4,10 @@ const getAuthToken = () => {
   return localStorage.getItem('adminToken');
 };
 
+const getUserToken = () => {
+  return localStorage.getItem('userToken');
+};
+
 // Message d'erreur si le backend ne répond pas (Failed to fetch)
 const handleFetchError = (err) => {
   if (err instanceof TypeError && err.message === 'Failed to fetch') {
@@ -255,19 +259,208 @@ export const api = {
     }
   },
 
-  // Auth
-  login: async (email, password) => {
+  // Payment config (no secrets)
+  getConfig: async () => {
     try {
-      const response = await fetch(`${API_URL}/auth/login`, {
+      const response = await fetch(`${API_URL}/config`);
+      if (!response.ok) throw new Error('Failed to fetch config');
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  createCheckoutSession: async (items, currency = 'eur', successUrl, cancelUrl) => {
+    const token = getUserToken();
+    try {
+      const response = await fetch(`${API_URL}/checkout/create-checkout-session`, {
         method: 'POST',
         headers: {
-          'Content-Type': 'application/json'
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
         },
+        body: JSON.stringify({ items, currency, successUrl, cancelUrl })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to create checkout session');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  createPayPalOrder: async (items, currency = 'eur') => {
+    const token = getUserToken();
+    try {
+      const response = await fetch(`${API_URL}/checkout/create-paypal-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ items, currency })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to create PayPal order');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  capturePayPalOrder: async (orderId, items, total, currency) => {
+    const token = getUserToken();
+    try {
+      const response = await fetch(`${API_URL}/checkout/capture-paypal-order`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token && { Authorization: `Bearer ${token}` })
+        },
+        body: JSON.stringify({ orderId, items, total, currency })
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to capture PayPal order');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  // Orders (admin)
+  getOrders: async () => {
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}/orders`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Failed to fetch orders');
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  getOrder: async (id) => {
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}/orders/${id}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) throw new Error('Failed to fetch order');
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  updateOrder: async (id, data) => {
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}/orders/${id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify(data)
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Failed to update order');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  refundOrder: async (id) => {
+    const token = getAuthToken();
+    try {
+      const response = await fetch(`${API_URL}/orders/${id}/refund`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (!response.ok) {
+        const err = await response.json();
+        throw new Error(err.message || 'Refund failed');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  // Auth - Admin
+  adminLogin: async (email, password) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/admin/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password })
       });
       if (!response.ok) {
         const error = await response.json();
         throw new Error(error.message || 'Login failed');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  // Auth - Customer
+  customerLogin: async (email, password) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Login failed');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  register: async (email, password, name = '') => {
+    try {
+      const response = await fetch(`${API_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password, name })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Registration failed');
+      }
+      return response.json();
+    } catch (err) {
+      handleFetchError(err);
+    }
+  },
+
+  googleLogin: async (credential) => {
+    try {
+      const response = await fetch(`${API_URL}/auth/google`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ credential })
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message || 'Google login failed');
       }
       return response.json();
     } catch (err) {

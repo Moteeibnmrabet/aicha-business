@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 import { useCategory } from '../context/CategoryContext';
+import { useAuth } from '../context/AuthContext';
 import { scrollToSection } from '../utils/smoothScroll';
 import { api } from '../services/api';
 import { getImageUrl } from '../utils/imageUtils';
@@ -17,6 +18,7 @@ const Navbar = ({ onShowToast }) => {
   const navigate = useNavigate();
   const { cartCount } = useCart();
   const { setSelectedCategory } = useCategory();
+  const { user, isAuthenticated, logout } = useAuth();
 
   useEffect(() => {
     api.getCategories()
@@ -150,7 +152,29 @@ const Navbar = ({ onShowToast }) => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </button>
-            <button className="relative text-deep-black hover:text-deep-black/70 transition-colors">
+            {isAuthenticated ? (
+              <div className="flex items-center gap-2">
+                <span className="hidden sm:inline text-sm font-sans font-light text-deep-black/70 truncate max-w-[120px]">
+                  {user?.email}
+                </span>
+                <button
+                  onClick={logout}
+                  className="text-sm font-sans font-light text-deep-black/70 hover:text-deep-black transition-colors"
+                >
+                  Déconnexion
+                </button>
+              </div>
+            ) : (
+              <div className="flex items-center gap-3">
+                <Link to="/login" className="text-sm font-sans font-light text-deep-black/70 hover:text-deep-black transition-colors">
+                  Connexion
+                </Link>
+                <Link to="/register" className="text-sm font-sans font-light text-deep-black/70 hover:text-deep-black transition-colors">
+                  Inscription
+                </Link>
+              </div>
+            )}
+            <Link to="/checkout" className="relative text-deep-black hover:text-deep-black/70 transition-colors">
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
               </svg>
@@ -159,7 +183,7 @@ const Navbar = ({ onShowToast }) => {
                   {cartCount}
                 </span>
               )}
-            </button>
+            </Link>
           </div>
         </div>
 

@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import { CategoryProvider } from './context/CategoryContext';
+import { AuthProvider } from './context/AuthContext';
 import { SidebarProvider, useSidebar } from './context/SidebarContext';
 import Navbar from './components/Navbar';
 import LeftSidebar from './components/LeftSidebar';
@@ -13,6 +14,11 @@ import ShippingPayment from './components/ShippingPayment';
 import Footer from './components/Footer';
 import ProductDetail from './pages/ProductDetail';
 import CollectionPage from './pages/CollectionPage';
+import Checkout from './pages/Checkout';
+import Success from './pages/Success';
+import Cancel from './pages/Cancel';
+import Login from './pages/Login';
+import Register from './pages/Register';
 import AdminLogin from './pages/AdminLogin';
 import Admin from './pages/Admin';
 import Toast from './components/Toast';
@@ -55,6 +61,11 @@ function AppContent({ showToast, hideToast, toastMessage }) {
         <Route path="/product/:id" element={<ProductDetail />} />
         <Route path="/collection" element={<CollectionPage />} />
         <Route path="/collection/:slug" element={<CollectionPage />} />
+        <Route path="/checkout" element={<Checkout onShowToast={showToast} />} />
+        <Route path="/login" element={<Login onShowToast={showToast} />} />
+        <Route path="/register" element={<Register onShowToast={showToast} />} />
+        <Route path="/success" element={<Success />} />
+        <Route path="/cancel" element={<Cancel />} />
         <Route path="/admin/login" element={<AdminLogin />} />
         <Route path="/admin" element={<Admin />} />
       </Routes>
@@ -82,6 +93,7 @@ function App() {
   return (
     <CartProvider>
       <CategoryProvider>
+        <AuthProvider>
         <Router>
           <SidebarProvider>
           <AppContent
@@ -91,6 +103,7 @@ function App() {
           />
           </SidebarProvider>
         </Router>
+        </AuthProvider>
       </CategoryProvider>
     </CartProvider>
   );

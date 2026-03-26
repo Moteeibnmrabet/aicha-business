@@ -4,6 +4,7 @@
   "description": "E-commerce haut de gamme pour trousses de luxe",
   "private": true,
   "dependencies": {
+    "@react-oauth/google": "^0.13.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.30.3",

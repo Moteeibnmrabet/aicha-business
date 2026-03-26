@@ -15,7 +15,7 @@ const ProductModal = ({ product, isOpen, onClose }) => {
   if (!isOpen || !product) return null;
 
   const handleAddToCart = () => {
-    addToCart();
+    addToCart(product, 1);
     onClose();
   };
 

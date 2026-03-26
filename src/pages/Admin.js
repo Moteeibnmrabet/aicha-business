@@ -3,14 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '../services/api';
 import { getImageUrl } from '../utils/imageUtils';
 
-const TABS = ['Produits', 'Hero', 'Catégories', 'Philosophie', 'Livraison & Paiement', 'Footer'];
+const TABS = ['Produits', 'Commandes', 'Hero', 'Catégories', 'Philosophie', 'Livraison & Paiement', 'Footer'];
 
 const Admin = () => {
   const [activeTab, setActiveTab] = useState('Produits');
   const [products, setProducts] = useState([]);
+  const [orders, setOrders] = useState([]);
   const [categories, setCategories] = useState([]);
   const [settings, setSettings] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [selectedOrder, setSelectedOrder] = useState(null);
+  const [orderTracking, setOrderTracking] = useState({ tracking_number: '', shipping_status: '' });
+  const [orderUpdating, setOrderUpdating] = useState(false);
+  const [orderRefunding, setOrderRefunding] = useState(null);
   const [error, setError] = useState('');
   const [showForm, setShowForm] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -38,14 +43,16 @@ const Admin = () => {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [productsData, categoriesData, settingsData] = await Promise.all([
+      const [productsData, categoriesData, settingsData, ordersData] = await Promise.all([
         api.getProducts(),
         api.getCategories(),
-        api.getSettings()
+        api.getSettings(),
+        api.getOrders().catch(() => [])
       ]);
       setProducts(productsData);
       setCategories(categoriesData);
       setSettings(settingsData);
+      setOrders(ordersData);
     } catch (err) {
       setError(err.message);
     } finally {
@@ -203,6 +210,21 @@ const Admin = () => {
     }
   };
 
+  const handleRefund = async (orderId) => {
+    if (!window.confirm('Déclencher un remboursement pour cette commande ?')) return;
+    setOrderRefunding(orderId);
+    setError('');
+    try {
+      await api.refundOrder(orderId);
+      await loadData();
+      setSelectedOrder(null);
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setOrderRefunding(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center mt-16 bg-off-white">
@@ -314,6 +336,82 @@ const Admin = () => {
                 </div>
               ))}
             </div>
+          </>
+        )}
+
+        {/* Tab: Commandes */}
+        {activeTab === 'Commandes' && (
+          <>
+            <div className="mb-6">
+              <p className="font-sans font-light text-deep-black/70 text-sm">Statut paiement mis à jour uniquement via webhook Stripe/PayPal. Remboursement via API.</p>
+            </div>
+            <div className="overflow-x-auto border border-light-gray">
+              <table className="w-full font-sans text-sm">
+                <thead>
+                  <tr className="border-b border-light-gray bg-light-gray/30">
+                    <th className="text-left p-4 font-light">Date</th>
+                    <th className="text-left p-4 font-light">Total</th>
+                    <th className="text-left p-4 font-light">Méthode</th>
+                    <th className="text-left p-4 font-light">Statut paiement</th>
+                    <th className="text-left p-4 font-light">Livraison</th>
+                    <th className="text-left p-4 font-light">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {orders.map((o) => (
+                    <tr key={o._id} className="border-b border-light-gray hover:bg-off-white/50">
+                      <td className="p-4 font-light">{o.created_at ? new Date(o.created_at).toLocaleString('fr-FR') : '-'}</td>
+                      <td className="p-4 font-light">{o.total} {o.currency}</td>
+                      <td className="p-4 font-light">{o.payment_method}</td>
+                      <td className="p-4 font-light">{o.payment_status}</td>
+                      <td className="p-4 font-light">{o.shipping_status || 'pending'}{o.tracking_number ? ` · ${o.tracking_number}` : ''}</td>
+                      <td className="p-4">
+                        <button type="button" onClick={() => { setSelectedOrder(o); setOrderTracking({ tracking_number: o.tracking_number || '', shipping_status: o.shipping_status || 'pending' }); }} className="text-deep-black/70 hover:text-deep-black font-light mr-2">Détails</button>
+                        {o.payment_status === 'paid' && (
+                          <button type="button" onClick={() => handleRefund(o._id)} disabled={orderRefunding === o._id} className="text-red-600 hover:text-red-700 font-light disabled:opacity-50">Rembourser</button>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {orders.length === 0 && <p className="font-sans font-light text-deep-black/60 py-8 text-center">Aucune commande</p>}
+
+            {selectedOrder && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-deep-black/40 p-4" onClick={() => setSelectedOrder(null)}>
+                <div className="bg-off-white max-w-2xl w-full max-h-[90vh] overflow-y-auto p-8" onClick={(e) => e.stopPropagation()}>
+                  <div className="flex justify-between items-start mb-6">
+                    <h2 className="text-2xl font-serif font-light">Commande {selectedOrder._id}</h2>
+                    <button type="button" onClick={() => setSelectedOrder(null)} className="text-deep-black/70 hover:text-deep-black">Fermer</button>
+                  </div>
+                  <div className="space-y-4 mb-6">
+                    <p><span className="font-light text-deep-black/60">Total :</span> {selectedOrder.total} {selectedOrder.currency}</p>
+                    <p><span className="font-light text-deep-black/60">Paiement :</span> {selectedOrder.payment_method} · {selectedOrder.payment_status}</p>
+                    <p><span className="font-light text-deep-black/60">Email :</span> {selectedOrder.customer_email || '-'}</p>
+                    <div>
+                      <p className="font-light text-deep-black/60 mb-2">Articles :</p>
+                      <ul className="list-disc pl-6">
+                        {selectedOrder.items && selectedOrder.items.map((it, i) => (
+                          <li key={i}>{it.name} × {it.quantity} — {it.price} {selectedOrder.currency}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  </div>
+                  <form onSubmit={async (e) => { e.preventDefault(); setOrderUpdating(true); try { await api.updateOrder(selectedOrder._id, orderTracking); await loadData(); setSelectedOrder(null); } catch (err) { setError(err.message); } finally { setOrderUpdating(false); } }} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-sans font-light mb-2">Statut livraison</label>
+                      <input type="text" value={orderTracking.shipping_status} onChange={(e) => setOrderTracking((t) => ({ ...t, shipping_status: e.target.value }))} placeholder="pending, shipped, delivered" className="w-full px-4 py-2 border border-light-gray" />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-sans font-light mb-2">Numéro de suivi</label>
+                      <input type="text" value={orderTracking.tracking_number} onChange={(e) => setOrderTracking((t) => ({ ...t, tracking_number: e.target.value }))} placeholder="Tracking number" className="w-full px-4 py-2 border border-light-gray" />
+                    </div>
+                    <button type="submit" disabled={orderUpdating} className="px-6 py-2 bg-deep-black text-white font-sans font-light text-sm uppercase disabled:opacity-50">Enregistrer</button>
+                  </form>
+                </div>
+              </div>
+            )}
           </>
         )}
 

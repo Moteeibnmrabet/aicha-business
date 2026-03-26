@@ -28,6 +28,17 @@ PORT=5000
 MONGODB_URI=mongodb://localhost:27017/aicha-business
 JWT_SECRET=your-super-secret-jwt-key-change-this-in-production
 NODE_ENV=development
+FRONTEND_URL=http://localhost:3000
+
+# Paiement Stripe (ne jamais exposer STRIPE_SECRET_KEY ni STRIPE_WEBHOOK_SECRET côté frontend)
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# Paiement PayPal (PAYPAL_CLIENT_ID peut être exposé via GET /api/config ; ne jamais exposer PAYPAL_CLIENT_SECRET)
+PAYPAL_CLIENT_ID=...
+PAYPAL_CLIENT_SECRET=...
+PAYPAL_MODE=sandbox
 ```
 
 ## Base de données
